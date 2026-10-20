@@ -1,0 +1,30 @@
+# Gateway config in LiteLLM's shape. Agent code asks for a ROLE, never a vendor model id.
+# Swap a model, a fallback or a budget here and no Python changes.
+#
+# Offline (default) every role is served by a local stub under `offline_model`, so the demo runs
+# with no keys. With --live the gateway hands `litellm_params` straight to litellm.completion.
+
+model_list:
+  - model_name: analysis                 # the governor's diagnosis model
+    litellm_params: {model: gemini/gemini-2.5-pro, api_key: os.environ/GEMINI_API_KEY}
+    model_info: {offline_model: stub/analyst, usd_per_1k_tokens: 0.00125}
+
+  - model_name: analysis-fallback
+    litellm_params: {model: anthropic/claude-sonnet-5-5, api_key: os.environ/ANTHROPIC_API_KEY}
+    model_info: {offline_model: stub/analyst-fallback, usd_per_1k_tokens: 0.003}
+
+  - model_name: pm-agent                 # what the simulated PMs think with
+    litellm_params: {model: openai/gpt-5-mini, api_key: os.environ/OPENAI_API_KEY}
+    model_info: {offline_model: stub/pm, usd_per_1k_tokens: 0.00025}
+
+router_settings:
+  fallbacks:
+    - analysis: [analysis-fallback]
+  num_retries: 0
+  timeout: 60
+
+# Virtual keys: who may call which role, and how much they may spend. The PMs being judged must
+# never be able to reach the judge's model, read its prompts, or burn its budget.
+keys:
+  sk-governor:  {team: risk,    models: [analysis, analysis-fallback], max_budget_usd: 0.50}
+  sk-pm-agents: {team: pm-pods, models: [pm-agent],                     max_budget_usd: 0.05}

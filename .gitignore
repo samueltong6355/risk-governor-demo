@@ -1,0 +1,7 @@
+__pycache__/
+.pytest_cache/
+audit.sqlite
+last_run.txt
+.venv/
+.env
+.env.*
